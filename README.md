@@ -3,6 +3,11 @@ A Discord bot, which has useful commands for creating backups of server as MarkD
 
 ___
 
+Commands:
+ - `!backup_all` - creates a backup of all the text channels from the server you're using the command on
+ 
+ ___
+
 Features:
  - creates a one-command backup of all the messages that were ever sent on that specific server
    - including images, links and all other files, that are supported for linking in Discord chat
@@ -11,6 +16,8 @@ Features:
  - packs all the files in one `.zip`
  - uploads zipped package to Discord chat, where the command was sent (if it's size is appropriate)
  - if any problems during uploading to Discord occur, program uploads the package to [www.file.io](https://www.file.io/), thus generating one-time download link, which is then sent in Discord chat
+ 
+It's primary feature was to be used as a backup for server, where users were voting on pictures using Discord Reactions.
  
  ___
  
