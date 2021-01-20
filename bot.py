@@ -1,3 +1,4 @@
+from random import randrange
 import discord
 from discord.ext.commands import Bot
 import os
@@ -8,7 +9,7 @@ import shutil
 
 from text_helper import *
 
-delete_after_upload = True
+delete_after_upload = False
 anonymize_nicknames = True
 
 source_path = os.path.dirname(os.path.realpath(__file__))
@@ -45,11 +46,14 @@ first_names = ["William", "James", "Harper", "Mason", "Evelyn", "Ella", "Marie",
 
 
 def filter_string(string):
-    return re.sub('[^a-zA-Z0-9 \n\.\-\_]', '', string).replace(" ", "-")
+    filtered_Polish_string = string.replace("ó", "o").replace("ż", "z").replace("ź", "z").replace("ę", "e").replace("ą", "a").replace("ś", "s").replace("ł", "l").replace("ć", "c").replace("ń", "n")
+    return re.sub('[^a-zA-Z0-9 \n\.\-\_]', '', filtered_Polish_string).replace(" ", "-")
 
 
 @bot.command()
 async def backup_all(ctx):
+
+    first_names_offset = randrange(len(first_names))
 
     main_folder_name = "serverBackup_" + filter_string(ctx.guild.name)
     main_path = os.path.join(build_path, main_folder_name)
@@ -81,7 +85,7 @@ async def backup_all(ctx):
             was_attachment = False
 
             if anonymize_nicknames:
-                output_string += first_names[int(message.author.id) % len(first_names)] + ": "
+                output_string += first_names[(int(message.author.id) + first_names_offset) % len(first_names)] + ": "
             else:
                 output_string += message.author.name + ": "
 
@@ -94,7 +98,7 @@ async def backup_all(ctx):
                 if any(attachment_file_name.lower().endswith(image_format) for image_format in image_formats):
                     output_string += "![" + attachment.filename + "](" + attachment_file_name + "?raw=true)\n\n"
                 else:
-                    output_string += "![" + attachment.filename + "](" + attachment_file_name + ")\n\n"
+                    output_string += "[" + attachment.filename + "](" + attachment_file_name + ")\n\n"
 
             if was_attachment:  ## If there's a picture, we want to also save the reactions to it
                 if message.reactions:
