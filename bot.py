@@ -64,6 +64,12 @@ def filter_string(string):
 
 
 @bot.command()
+async def tell_me_ctx(ctx):
+    await ctx.send(ctx.channel)
+    await ctx.send(ctx.channel.category)
+
+
+@bot.command()
 async def backup_all(ctx):
 
     first_names_offset = randrange(len(first_names))
