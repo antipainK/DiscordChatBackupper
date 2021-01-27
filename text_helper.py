@@ -37,6 +37,7 @@ def createCentered(text):
     else:
         return createCharLineWithLength(" ", int((consoleWidth-len(text))/2)) + text
 
+
 def createNewLines(amount=1):
     output = "\n"
     yetToWrite = amount - 1
@@ -53,11 +54,13 @@ def createNewLines(amount=1):
             yetToWrite = 0
     return output
 
+
 def printCharLine(character, newLine=True):
     if(newLine):
         print(createCharLine(character))
     else:
         print(createCharLine(character), end='')
+
 
 def printTabbed(text, amountOfTabs=1, newLine=True):
     if(newLine):
@@ -65,13 +68,15 @@ def printTabbed(text, amountOfTabs=1, newLine=True):
     else:
         print(createTabbed(text, amountOfTabs), end='')
 
+
 def printCentered(text, newLine=True):
     if(newLine):
         print(createCentered(text))
     else:
         print(createCentered(text), end='')
 
-def printNewLines(amount):
+
+def printNewLines(amount=1):
     print(createNewLines(amount), end='')
 
 
