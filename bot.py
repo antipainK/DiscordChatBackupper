@@ -12,7 +12,7 @@ from text_helper import *
 ################################################################################
 
 bot_name = "Discord Chat Backupper by WuKos"
-bot_version = "1.2.3"
+bot_version = "1.2.4"
 
 ################################################################################
 
@@ -70,12 +70,6 @@ first_names = ["William", "James", "Harper", "Mason", "Evelyn", "Ella", "Marie",
 def filter_string(string):
     filtered_Polish_string = string.replace("ó", "o").replace("ż", "z").replace("ź", "z").replace("ę", "e").replace("ą", "a").replace("ś", "s").replace("ł", "l").replace("ć", "c").replace("ń", "n").replace("Ó", "O").replace("Ż", "Z").replace("Ź", "Z").replace("Ę", "E").replace("Ą", "A").replace("Ś", "S").replace("Ł", "L").replace("Ć", "C").replace("Ń", "N")
     return re.sub('[^a-zA-Z0-9 \n\.\-\_]', '', filtered_Polish_string).replace(" ", "-")
-
-
-@bot.command()
-async def tell_me_ctx(ctx):
-    await ctx.send(ctx.channel)
-    await ctx.send(ctx.channel.category)
 
 
 async def log_message(message, ctx=None):
@@ -226,7 +220,7 @@ async def delete_message(message, channel_name):
         await log_message("Lacking permission to delete messages on '" + channel_name + "'.")
 
 
-@bot.command()
+@bot.command(aliases=['channel_backup'])
 async def backup_channel(ctx):
     first_names_offset = randrange(len(first_names))
     filtered_name = filter_string(ctx.channel.name)
@@ -257,7 +251,7 @@ async def backup_channel(ctx):
         await log_message("Lacking permission to send messages on '" + filtered_name + "'.")
 
 
-@bot.command()
+@bot.command(aliases=['category_backup'])
 async def backup_category(ctx):
     first_names_offset = randrange(len(first_names))
     filtered_name = filter_string(ctx.channel.category.name)
@@ -289,7 +283,7 @@ async def backup_category(ctx):
         await log_message("Lacking permission to send messages on '" + filtered_name + "'.")
 
 
-@bot.command()
+@bot.command(aliases=['server_backup'])
 async def backup_server(ctx):
     first_names_offset = randrange(len(first_names))
     filtered_name = filter_string(ctx.guild.name)
@@ -326,6 +320,16 @@ async def backup_server(ctx):
 
     except discord.errors.Forbidden:
         await log_message("Lacking permission to send messages on '" + filtered_name + "'.")
+
+
+@bot.command()
+async def backup(ctx, scope="channel"):
+    if scope == "channel":
+        await backup_channel(ctx)
+    elif scope == "category":
+        await backup_category(ctx)
+    elif scope == "server":
+        await backup_server(ctx)
 
 
 @bot.event
