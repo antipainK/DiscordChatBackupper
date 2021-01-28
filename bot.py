@@ -12,16 +12,17 @@ from text_helper import *
 ################################################################################
 
 bot_name = "Discord Chat Backupper by WuKos"
-bot_version = "1.2.0"
+bot_version = "1.2.2"
 # https://discord.com/oauth2/authorize?client_id=789584577387692093&scope=bot
 
 ################################################################################
 
-delete_after_upload = True
+delete_after_upload = False
 anonymize_nicknames = True
 include_dates = False
 include_this_bot_messages = False
 delete_command_after_casting = True
+log_to_discord = True
 
 ################################################################################
 
@@ -55,8 +56,8 @@ def get_all_file_paths(directory):  # for ZipFile
     return file_paths
 
 
-
 image_formats = ["png", "jpg", "jpeg", "gif"]
+
 first_names = ["William", "James", "Harper", "Mason", "Evelyn", "Ella", "Marie", "John", "George", "Oliver", "Jack",
                "Harry", "Jacob", "Charlie", "Thomas", "Oscar", "Connor", "Kyle", "Richard", "Amelia", "Olivia", "Emily",
                "Poppy", "Isabella", "Jessica", "Sophie", "Samantha", "Elizabeth", "Lauren", "Sarah", "Abraham",
@@ -76,6 +77,13 @@ def filter_string(string):
 async def tell_me_ctx(ctx):
     await ctx.send(ctx.channel)
     await ctx.send(ctx.channel.category)
+
+
+async def log_message(message, ctx=None):
+    printTabbed(message)
+    if ctx is not None:
+        if log_to_discord:
+            await ctx.send(message)
 
 
 def write_markdown_line_to_file(markdown_line, file):
@@ -103,6 +111,9 @@ async def inner_backup_channel(ctx, channel, main_path, create_new_directory=Fal
             if not include_this_bot_messages:
                 if message.author == bot.user:
                     continue
+
+            if message.is_system():
+                continue
 
             output_string = "\n"
 
@@ -142,28 +153,29 @@ async def inner_backup_channel(ctx, channel, main_path, create_new_directory=Fal
             write_markdown_line_to_file(output_string, file)
 
     except discord.errors.Forbidden:
-        printTabbed("Lacking permission to browse through messages on '" + channel_fullname + "'.")
-        await ctx.send("Lacking permission to browse through messages on '" + channel_fullname + "'.")
+        await log_message("Lacking permission to browse through messages on '" + channel_fullname + "'.", ctx)
 
     file.close()
 
 
-def zip_files(main_folder_name, main_path):
-    printTabbed("Zipping " + main_folder_name + ".zip - Started...")
+async def zip_files(main_folder_name, main_path):
+    await log_message("Zipping " + main_folder_name + ".zip - Started...")
+
     file_paths = get_all_file_paths(main_path)
     zip_name = main_folder_name + ".zip"
     zip_path = os.path.join(build_path, zip_name)
     length_of_build_path = len(build_path)
+
     with ZipFile(zip_path, "w") as zip_saved:
         for file in file_paths:
             zip_saved.write(file, file[length_of_build_path:])
-    printTabbed("Zipping " + zip_name + " - Finished.")
+
+    await log_message("Zipping " + zip_name + " - Finished.")
     return zip_name, zip_path
 
 
 async def send_file_to_FileIO(ctx, file_name, file_path):
-    printTabbed("Uploading " + file_name + " to File.io - Started...")
-    await ctx.send("Uploading " + file_name + " to File.io - Started...")
+    await log_message("Uploading " + file_name + " to File.io - Started...", ctx)
 
     try:
         zip_file = open(file_path, 'rb')
@@ -174,40 +186,36 @@ async def send_file_to_FileIO(ctx, file_name, file_path):
         result = response.json()
         zip_file.close()
 
-        printTabbed("Uploading " + file_name + " to File.io - Finished.")
-        await ctx.send("Uploading " + file_name + " to File.io - Finished.")
+        await log_message("Uploading " + file_name + " to File.io - Finished.", ctx)
 
         if result["success"]:
             await ctx.send("Download (single-use) `" + file_name + "`: " + result["link"])
         else:
-            await ctx.send("There was an error during the upload. Error message: " + result["message"] + ".")
+            await log_message("There was an error during the upload. Error message: " + result["message"] + ".", ctx)
 
     except MemoryError:
-        printTabbed("Error: Memory error (file too large?)")
-        await ctx.send("Error: Memory Error (probably the file is too large).")
+        await log_message("Error: Memory error (file too large?)", ctx)
 
 
 async def send_file_to_channel(ctx, file_name, file_path):
 
-    printTabbed("Uploading " + file_name + " to Discord - Started...")
-    await ctx.send("Uploading " + file_name + " to Discord - Started...")
+    await log_message("Uploading " + file_name + " to Discord - Started...", ctx)
 
     try:
         await ctx.send(file=discord.File(file_path))
-        printTabbed("Uploading " + file_name + " to Discord - Finished.")
+        await log_message("Uploading " + file_name + " to Discord - Finished.")
 
     except discord.errors.HTTPException:
-        printTabbed("Uploading " + file_name + " to Discord - Finished with an error!")
-        await ctx.send("Uploading " + file_name + " to Discord - Finished with an error!")
+        await log_message("Uploading " + file_name + " to Discord - Finished with an error!", ctx)
         await send_file_to_FileIO(ctx, file_name, file_path)
 
 
 async def delete_backup_files(main_folder_name, main_path, zip_path):
-    printTabbed("Deleting " + main_folder_name + " - Started...")
+    await log_message("Deleting " + main_folder_name + " - Started...")
     try:
         shutil.rmtree(main_path)
         os.remove(zip_path)
-        printTabbed("Deleting " + main_folder_name + " - Finished.")
+        await log_message("Deleting " + main_folder_name + " - Finished.")
     except OSError as e:
         print(e)
 
@@ -224,20 +232,18 @@ async def backup_channel(ctx):
             try:
                 await ctx.message.delete()
             except discord.errors.Forbidden:
-                printTabbed("Lacking permission to delete messages on '" + filtered_name + "'.")
+                await log_message("Lacking permission to delete messages on '" + filtered_name + "'.")
 
-        printTabbed("Backup of '" + filtered_name + "' - Started...")
-        await ctx.send("Backup of '" + filtered_name + "' - Started...")
+        await log_message("Backup of '" + filtered_name + "' - Started...", ctx)
 
         if not os.path.exists(main_path):
             os.mkdir(main_path)
 
         await inner_backup_channel(ctx, ctx.channel, main_path, first_names_offset=first_names_offset)
 
-        printTabbed("Backup of '" + filtered_name + "' - Finished.")
-        await ctx.send("Backup of '" + filtered_name + "' - Finished.")
+        await log_message("Backup of '" + filtered_name + "' - Finished.", ctx)
 
-        zip_name, zip_path = zip_files(main_folder_name, main_path)
+        zip_name, zip_path = await zip_files(main_folder_name, main_path)
 
         await send_file_to_channel(ctx, zip_name, zip_path)
 
@@ -245,7 +251,7 @@ async def backup_channel(ctx):
             await delete_backup_files(main_folder_name, main_path, zip_path)
 
     except discord.errors.Forbidden:
-        printTabbed("Lacking permission to send messages on '" + filtered_name + "'.")
+        await log_message("Lacking permission to send messages on '" + filtered_name + "'.")
 
 
 @bot.command()
@@ -260,10 +266,9 @@ async def backup_category(ctx):
             try:
                 await ctx.message.delete()
             except discord.errors.Forbidden:
-                printTabbed("Lacking permission to delete messages on '" + filtered_name + "'.")
+                await log_message("Lacking permission to delete messages on '" + filtered_name + "'.")
 
-        printTabbed("Backup of '" + filtered_name + "' - Started...")
-        await ctx.send("Backup of '" + filtered_name + "' - Started...")
+        await log_message("Backup of '" + filtered_name + "' - Started...", ctx)
 
         if not os.path.exists(main_path):
             os.mkdir(main_path)
@@ -271,10 +276,9 @@ async def backup_category(ctx):
         for channel in ctx.channel.category.text_channels:
             await inner_backup_channel(ctx, channel, main_path, create_new_directory=True, first_names_offset=first_names_offset)
 
-        printTabbed("Backup of '" + filtered_name + "' - Finished.")
-        await ctx.send("Backup of '" + filtered_name + "' - Finished.")
+        await log_message("Backup of '" + filtered_name + "' - Finished.", ctx)
 
-        zip_name, zip_path = zip_files(main_folder_name, main_path)
+        zip_name, zip_path = await zip_files(main_folder_name, main_path)
 
         await send_file_to_channel(ctx, zip_name, zip_path)
 
@@ -282,101 +286,49 @@ async def backup_category(ctx):
             await delete_backup_files(main_folder_name, main_path, zip_path)
 
     except discord.errors.Forbidden:
-        printTabbed("Lacking permission to send messages on '" + filtered_name + "'.")
-
+        await log_message("Lacking permission to send messages on '" + filtered_name + "'.")
 
 
 @bot.command()
-async def backup_all(ctx):
-
+async def backup_server(ctx):
     first_names_offset = randrange(len(first_names))
-
-    main_folder_name = "serverBackup_" + filter_string(ctx.guild.name)
+    filtered_name = filter_string(ctx.guild.name)
+    main_folder_name = "serverBackup_" + filtered_name
     main_path = os.path.join(build_path, main_folder_name)
-    print("Backup of: " + filter_string(ctx.guild.name) + " - Started...")
-    await ctx.send("Backup of: " + filter_string(ctx.guild.name) + " - Started...")
 
-    if not os.path.exists(main_path):
-        os.mkdir(main_path)
+    try:
+        if delete_command_after_casting:
+            try:
+                await ctx.message.delete()
+            except discord.errors.Forbidden:
+                await log_message("Lacking permission to delete messages on '" + filtered_name + "'.")
 
-    for text_channel in ctx.guild.text_channels:
+        await log_message("Backup of '" + filtered_name + "' - Started...", ctx)
 
-        if text_channel.category is not None:
-            channel_name = filter_string(text_channel.category.name) + "_" + filter_string(text_channel.name)
-        else:
-            channel_name = filter_string(text_channel.name)
+        if not os.path.exists(main_path):
+            os.mkdir(main_path)
 
+        for category in ctx.guild.categories:
+            category_folder_name = filter_string(category.name)
+            category_path = os.path.join(main_path, category_folder_name)
 
-        channel_path = os.path.join(main_path, channel_name)
-        if not os.path.exists(channel_path):
-            os.mkdir(channel_path)
+            if not os.path.exists(category_path):
+                os.mkdir(category_path)
 
+            for channel in category.text_channels:
+                await inner_backup_channel(ctx, channel, category_path, create_new_directory=True, first_names_offset=first_names_offset)
 
-        markdown_name = filter_string(text_channel.name[0:20]) + ".md"
-        file = open(os.path.join(channel_path, markdown_name), 'wb')
+        await log_message("Backup of '" + filtered_name + "' - Finished.", ctx)
 
-        header_text = "### " + text_channel.name + "\n\n"
-        file.write((header_text).encode("utf-8"))
+        zip_name, zip_path = await zip_files(main_folder_name, main_path)
 
-        try:
-            async for message in text_channel.history(limit=discord_chat_history_depth_limit, oldest_first=True):
-                output_string = "\n"
-                was_attachment = False
+        await send_file_to_channel(ctx, zip_name, zip_path)
 
-                if anonymize_nicknames:
-                    output_string += first_names[(int(message.author.id) + first_names_offset) % len(first_names)] + ": "
-                else:
-                    output_string += message.author.name + ": "
+        if delete_after_upload:
+            await delete_backup_files(main_folder_name, main_path, zip_path)
 
-                for attachment in message.attachments:
-                    was_attachment = True
-                    attachment_file_name = str(attachment.id) + "_" + filter_string(attachment.filename)
-                    attachment_file_path = os.path.join(channel_path, attachment_file_name)
-                    await attachment.save(attachment_file_path)
-
-                    if any(attachment_file_name.lower().endswith(image_format) for image_format in image_formats):
-                        output_string += "\n![" + attachment.filename + "](" + attachment_file_name + "?raw=true)\n\n"
-                    else:
-                        output_string += "[" + attachment.filename + "](" + attachment_file_name + ")\n\n"
-
-                if was_attachment:  ## If there's a picture, we want to also save the reactions to it
-                    if message.reactions:
-                        output_string += "|"
-                    for reaction in message.reactions:
-                        output_string += " "
-                        if type(reaction.emoji) is type("string"):
-                            output_string += reaction.emoji
-                        else:
-                            output_string += reaction.emoji.name
-                        output_string += " - " + str(reaction.count) + " |"
-
-                output_string += "\n\n"
-
-                output_string += message.content
-                output_string += "\n___"
-                file.write((output_string).encode("utf-8"))
-
-        except discord.errors.Forbidden:
-            # No permissions
-            print("Error: No permissions to " + str(text_channel.category) + " - " + str(text_channel))
-            await ctx.send("Error: No permissions to " + str(text_channel.category) + " - " + str(text_channel))
-        file.close()
-
-    print("Backup of: " + filter_string(ctx.guild.name) + " - Finished.")
-
-    zip_name, zip_path = zip_files(main_folder_name, main_path)
-
-    await send_file_to_channel(ctx, zip_name, zip_path)
-
-    if delete_after_upload:
-        print("Deleting " + main_folder_name + " - Started...")
-        try:
-            shutil.rmtree(main_path)
-            os.remove(zip_path)
-            print("Deleting " + main_folder_name + " - Finished.")
-        except OSError as e:
-            print(e)
-
+    except discord.errors.Forbidden:
+        await log_message("Lacking permission to send messages on '" + filtered_name + "'.")
 
 
 @bot.event
