@@ -11,8 +11,8 @@ from text_helper import *
 
 ################################################################################
 
-bot_name = "Discord Chat Backupper by WuKos"
-bot_version = "1.3.0"
+bot_name = "Discord Chat Backupper by GabenRulez"
+bot_version = "1.3.1"
 
 ################################################################################
 
@@ -285,7 +285,7 @@ async def backup_category(ctx):
         await log_message("Lacking permission to send messages on '" + filtered_name + "'.")
 
 
-@bot.command(aliases=['server_backup'])
+@bot.command(aliases=['server_backup', 'backup_all'])
 async def backup_server(ctx):
     first_names_offset = randrange(len(first_names))
     filtered_name = filter_string(ctx.guild.name)
