@@ -4,7 +4,7 @@ A Discord bot, which has useful commands for creating backups of server as MarkD
 ___
 
 Commands:
- - `!backup_all` - creates a backup of all the text channels from the server you're using the command on
+ - `!backup_server` - creates a backup of all the text channels from the server you're using the command on
  - `!backup_category` - creates a backup of all the text channels from the category you're using the command on
  - `!backup_channel` - creates a backup of the text channel you're using the command on
  
