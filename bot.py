@@ -12,7 +12,7 @@ from text_helper import *
 ################################################################################
 
 bot_name = "Discord Chat Backupper by WuKos"
-bot_version = "1.0.1"
+bot_version = "1.2.0"
 # https://discord.com/oauth2/authorize?client_id=789584577387692093&scope=bot
 
 ################################################################################
@@ -248,6 +248,41 @@ async def backup_channel(ctx):
         printTabbed("Lacking permission to send messages on '" + filtered_name + "'.")
 
 
+@bot.command()
+async def backup_category(ctx):
+    first_names_offset = randrange(len(first_names))
+    filtered_name = filter_string(ctx.channel.category.name)
+    main_folder_name = "categoryBackup_" + filtered_name
+    main_path = os.path.join(build_path, main_folder_name)
+
+    try:
+        if delete_command_after_casting:
+            try:
+                await ctx.message.delete()
+            except discord.errors.Forbidden:
+                printTabbed("Lacking permission to delete messages on '" + filtered_name + "'.")
+
+        printTabbed("Backup of '" + filtered_name + "' - Started...")
+        await ctx.send("Backup of '" + filtered_name + "' - Started...")
+
+        if not os.path.exists(main_path):
+            os.mkdir(main_path)
+
+        for channel in ctx.channel.category.text_channels:
+            await inner_backup_channel(ctx, channel, main_path, create_new_directory=True, first_names_offset=first_names_offset)
+
+        printTabbed("Backup of '" + filtered_name + "' - Finished.")
+        await ctx.send("Backup of '" + filtered_name + "' - Finished.")
+
+        zip_name, zip_path = zip_files(main_folder_name, main_path)
+
+        await send_file_to_channel(ctx, zip_name, zip_path)
+
+        if delete_after_upload:
+            await delete_backup_files(main_folder_name, main_path, zip_path)
+
+    except discord.errors.Forbidden:
+        printTabbed("Lacking permission to send messages on '" + filtered_name + "'.")
 
 
 
