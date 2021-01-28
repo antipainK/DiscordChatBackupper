@@ -12,12 +12,11 @@ from text_helper import *
 ################################################################################
 
 bot_name = "Discord Chat Backupper by WuKos"
-bot_version = "1.2.2"
-# https://discord.com/oauth2/authorize?client_id=789584577387692093&scope=bot
+bot_version = "1.2.3"
 
 ################################################################################
 
-delete_after_upload = False
+delete_after_upload = True
 anonymize_nicknames = True
 include_dates = False
 include_this_bot_messages = False
@@ -220,6 +219,13 @@ async def delete_backup_files(main_folder_name, main_path, zip_path):
         print(e)
 
 
+async def delete_message(message, channel_name):
+    try:
+        await message.delete()
+    except discord.errors.Forbidden:
+        await log_message("Lacking permission to delete messages on '" + channel_name + "'.")
+
+
 @bot.command()
 async def backup_channel(ctx):
     first_names_offset = randrange(len(first_names))
@@ -229,10 +235,7 @@ async def backup_channel(ctx):
 
     try:
         if delete_command_after_casting:
-            try:
-                await ctx.message.delete()
-            except discord.errors.Forbidden:
-                await log_message("Lacking permission to delete messages on '" + filtered_name + "'.")
+            await delete_message(ctx.message, filtered_name)
 
         await log_message("Backup of '" + filtered_name + "' - Started...", ctx)
 
@@ -263,10 +266,7 @@ async def backup_category(ctx):
 
     try:
         if delete_command_after_casting:
-            try:
-                await ctx.message.delete()
-            except discord.errors.Forbidden:
-                await log_message("Lacking permission to delete messages on '" + filtered_name + "'.")
+            await delete_message(ctx.message, filtered_name)
 
         await log_message("Backup of '" + filtered_name + "' - Started...", ctx)
 
@@ -298,10 +298,7 @@ async def backup_server(ctx):
 
     try:
         if delete_command_after_casting:
-            try:
-                await ctx.message.delete()
-            except discord.errors.Forbidden:
-                await log_message("Lacking permission to delete messages on '" + filtered_name + "'.")
+            await delete_message(ctx.message, filtered_name)
 
         await log_message("Backup of '" + filtered_name + "' - Started...", ctx)
 
