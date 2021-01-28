@@ -81,6 +81,7 @@ async def tell_me_ctx(ctx):
 def write_markdown_line_to_file(markdown_line, file):
     file.write(markdown_line.encode("utf-8"))
 
+
 async def inner_backup_channel(ctx, channel, main_path, create_new_directory=False, first_names_offset=0):
     channel_name = filter_string(channel.name)
     channel_fullname = filter_string(channel.category.name) + " - " + channel_name
@@ -147,6 +148,69 @@ async def inner_backup_channel(ctx, channel, main_path, create_new_directory=Fal
     file.close()
 
 
+def zip_files(main_folder_name, main_path):
+    printTabbed("Zipping " + main_folder_name + ".zip - Started...")
+    file_paths = get_all_file_paths(main_path)
+    zip_name = main_folder_name + ".zip"
+    zip_path = os.path.join(build_path, zip_name)
+    length_of_build_path = len(build_path)
+    with ZipFile(zip_path, "w") as zip_saved:
+        for file in file_paths:
+            zip_saved.write(file, file[length_of_build_path:])
+    printTabbed("Zipping " + zip_name + " - Finished.")
+    return zip_name, zip_path
+
+
+async def send_file_to_FileIO(ctx, file_name, file_path):
+    printTabbed("Uploading " + file_name + " to File.io - Started...")
+    await ctx.send("Uploading " + file_name + " to File.io - Started...")
+
+    try:
+        zip_file = open(file_path, 'rb')
+        files = {
+            'file': (file_name, zip_file),
+        }
+        response = requests.post('https://file.io/', files=files)
+        result = response.json()
+        zip_file.close()
+
+        printTabbed("Uploading " + file_name + " to File.io - Finished.")
+        await ctx.send("Uploading " + file_name + " to File.io - Finished.")
+
+        if result["success"]:
+            await ctx.send("Download (single-use) `" + file_name + "`: " + result["link"])
+        else:
+            await ctx.send("There was an error during the upload. Error message: " + result["message"] + ".")
+
+    except MemoryError:
+        printTabbed("Error: Memory error (file too large?)")
+        await ctx.send("Error: Memory Error (probably the file is too large).")
+
+
+async def send_file_to_channel(ctx, file_name, file_path):
+
+    printTabbed("Uploading " + file_name + " to Discord - Started...")
+    await ctx.send("Uploading " + file_name + " to Discord - Started...")
+
+    try:
+        await ctx.send(file=discord.File(file_path))
+        printTabbed("Uploading " + file_name + " to Discord - Finished.")
+
+    except discord.errors.HTTPException:
+        printTabbed("Uploading " + file_name + " to Discord - Finished with an error!")
+        await ctx.send("Uploading " + file_name + " to Discord - Finished with an error!")
+        await send_file_to_FileIO(ctx, file_name, file_path)
+
+
+async def delete_backup_files(main_folder_name, main_path, zip_path):
+    printTabbed("Deleting " + main_folder_name + " - Started...")
+    try:
+        shutil.rmtree(main_path)
+        os.remove(zip_path)
+        printTabbed("Deleting " + main_folder_name + " - Finished.")
+    except OSError as e:
+        print(e)
+
 
 @bot.command()
 async def backup_channel(ctx):
@@ -172,6 +236,13 @@ async def backup_channel(ctx):
 
         printTabbed("Backup of '" + filtered_name + "' - Finished.")
         await ctx.send("Backup of '" + filtered_name + "' - Finished.")
+
+        zip_name, zip_path = zip_files(main_folder_name, main_path)
+
+        await send_file_to_channel(ctx, zip_name, zip_path)
+
+        if delete_after_upload:
+            await delete_backup_files(main_folder_name, main_path, zip_path)
 
     except discord.errors.Forbidden:
         printTabbed("Lacking permission to send messages on '" + filtered_name + "'.")
@@ -258,41 +329,9 @@ async def backup_all(ctx):
 
     print("Backup of: " + filter_string(ctx.guild.name) + " - Finished.")
 
-    print("Zipping " + main_folder_name + ".zip - Started...")
-    file_paths = get_all_file_paths(main_path)
-    zip_name = main_folder_name + ".zip"
-    zip_path = os.path.join(build_path, zip_name)
-    length_of_build_path = len(build_path)
-    with ZipFile(zip_path, "w") as zip_saved:
-        for file in file_paths:
-            zip_saved.write(file, file[length_of_build_path:])
-    print("Zipping " + zip_name + " - Finished.")
-    print("Uploading " + zip_name + " to Discord - Started...")
-    try:
-        await ctx.send(file=discord.File(zip_path))
-        print("Uploading " + zip_name + " to Discord - Finished.")
+    zip_name, zip_path = zip_files(main_folder_name, main_path)
 
-    except discord.errors.HTTPException:
-        print("Uploading " + zip_name + " to Discord - Finished with an ERROR!")
-        print("Uploading " + zip_name + " to File.io - Started...")
-        await ctx.send("File `" + zip_name + "` is too large for Discord.\nLink to File.io will be generated soon.")
-        try:
-            zip_file = open(zip_path, 'rb')
-            files = {
-                'file': (zip_name, zip_file),
-            }
-            response = requests.post('https://file.io/', files=files)
-            result = response.json()
-            zip_file.close()
-            print("Uploading " + zip_name + " to File.io - Finished.")
-            if result["success"]:
-                await ctx.send("Download (single-use) `" + zip_name + "`: " + result["link"])
-            else:
-                await ctx.send(
-                    "There was an error during the upload. Error message: " + result["message"] + ".")
-        except MemoryError:
-            await ctx.send("Error: Memory Error (probably the file is too large).")
-            print("Error: Memory error (file too large?)")
+    await send_file_to_channel(ctx, zip_name, zip_path)
 
     if delete_after_upload:
         print("Deleting " + main_folder_name + " - Started...")
