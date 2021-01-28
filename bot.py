@@ -12,7 +12,7 @@ from text_helper import *
 ################################################################################
 
 bot_name = "Discord Chat Backupper by WuKos"
-bot_version = "1.2.4"
+bot_version = "1.3.0"
 
 ################################################################################
 
@@ -145,10 +145,12 @@ async def inner_backup_channel(ctx, channel, main_path, create_new_directory=Fal
             output_string += "___"
             write_markdown_line_to_file(output_string, file)
 
-    except discord.errors.Forbidden:
-        await log_message("Lacking permission to browse through messages on '" + channel_fullname + "'.", ctx)
+        file.close()
 
-    file.close()
+    except discord.errors.Forbidden:
+        file.close()
+        os.remove(os.path.join(channel_path, markdown_name))
+        await log_message("Lacking permission to browse through messages on '" + channel_fullname + "'.", ctx)
 
 
 async def zip_files(main_folder_name, main_path):
