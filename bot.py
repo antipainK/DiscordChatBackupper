@@ -12,11 +12,11 @@ from text_helper import *
 ################################################################################
 
 bot_name = "Discord Chat Backupper by GabenRulez"
-bot_version = "1.3.1"
+bot_version = "1.4.0"
 
 ################################################################################
 
-delete_after_upload = True
+delete_after_upload = False
 anonymize_nicknames = True
 include_dates = False
 include_this_bot_messages = False
@@ -68,7 +68,12 @@ first_names = ["William", "James", "Harper", "Mason", "Evelyn", "Ella", "Marie",
 
 
 def filter_string(string):
-    filtered_Polish_string = string.replace("ó", "o").replace("ż", "z").replace("ź", "z").replace("ę", "e").replace("ą", "a").replace("ś", "s").replace("ł", "l").replace("ć", "c").replace("ń", "n").replace("Ó", "O").replace("Ż", "Z").replace("Ź", "Z").replace("Ę", "E").replace("Ą", "A").replace("Ś", "S").replace("Ł", "L").replace("Ć", "C").replace("Ń", "N")
+    filtered_Polish_string = string\
+        .replace("ó", "o").replace("ż", "z").replace("ź", "z").replace("ę", "e").replace("ą", "a")\
+        .replace("ś", "s").replace("ł", "l").replace("ć", "c").replace("ń", "n")\
+        \
+        .replace("Ó", "O").replace("Ż", "Z").replace("Ź", "Z").replace("Ę", "E")\
+        .replace("Ą", "A").replace("Ś", "S").replace("Ł", "L").replace("Ć", "C").replace("Ń", "N")
     return re.sub('[^a-zA-Z0-9 \n\.\-\_]', '', filtered_Polish_string).replace(" ", "-")
 
 
@@ -118,7 +123,12 @@ async def inner_backup_channel(ctx, channel, main_path, create_new_directory=Fal
             if include_dates:
                 output_string += "&nbsp;_(" + str(message.created_at)[0:19] + ")_"
 
-            output_string += "\n\n" + message.clean_content + "\n\n"
+            message_even_clearer_content = message.clean_content
+            if anonymize_nicknames:
+                for mention in message.mentions:
+                    message_even_clearer_content = message_even_clearer_content.replace("@" + mention.name, "@" + first_names[(int(mention.id) + first_names_offset) % len(first_names)])
+
+            output_string += "\n\n" + message_even_clearer_content + "\n\n"
 
             for attachment in message.attachments:
                 attachment_file_name = str(attachment.id) + "_" + filter_string(attachment.filename)
