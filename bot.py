@@ -19,9 +19,11 @@ bot_version = "1.4.0"
 delete_after_upload = False
 anonymize_nicknames = True
 include_dates = False
-include_this_bot_messages = False
+include_this_bot_messages = False       # If set to True, then it will also backup all the messages this bot has sent - WARNING: it might create a backup containing older backups
 delete_command_after_casting = True
-log_to_discord = True
+log_to_discord = False
+# TODO fix ServerDisconnectedError (happend once, while .zip file was bigger than 500MB, maybe size matters?)
+# TODO remove all empty directories inside backup (for example categories containing channels bot doesn't have permissions to and voice categories)
 
 ################################################################################
 
